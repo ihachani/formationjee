@@ -1,5 +1,6 @@
 package dao;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -7,18 +8,50 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 import models.Book;
 
 public class BookDAOJDBC implements BookDAO {
 	private Statement statement;
-	// private ResultSet rs;
 	private Connection connector;
 
 	public BookDAOJDBC() throws ClassNotFoundException, SQLException {
+		loadMysqlJDBCDriver();
+		Map<String, String> connectionParams = createConnectionParamatersFromPropertiesFile();
+		initializeConnection(connectionParams);
+		createStatement();
+	}
+
+	private void loadMysqlJDBCDriver() throws ClassNotFoundException {
 		Class.forName("com.mysql.jdbc.Driver");
-		connector = DriverManager.getConnection("jdbc:mysql://localhost:3306/books", "formation", "formation");
+	}
+
+	private Map<String, String> createConnectionParamatersFromPropertiesFile() {
+		Properties connectionProperties = new Properties();
+		try {
+			connectionProperties.load(getClass().getClassLoader().getResourceAsStream("mysqlconfig.properties"));
+		} catch (IOException e) {
+			System.err.println("Can't find properties file");
+			e.printStackTrace();
+		}
+		Map<String, String> connectionParams = new HashMap<>();
+		connectionParams.put("host", connectionProperties.getProperty("host"));
+		connectionParams.put("database", connectionProperties.getProperty("database"));
+		connectionParams.put("user", connectionProperties.getProperty("user"));
+		connectionParams.put("password", connectionProperties.getProperty("password"));
+		return connectionParams;
+	}
+
+	private void initializeConnection(Map<String, String> connectionParams) throws SQLException {
+		connector = DriverManager.getConnection(connectionParams.get("host") + connectionParams.get("database"),
+				connectionParams.get("user"), connectionParams.get("password"));
+	}
+
+	private void createStatement() throws SQLException {
 		statement = connector.createStatement();
 	}
 
